@@ -50,7 +50,7 @@ gh repo create urbancart-ecommerce --public --source=. --remote=origin --push
 If you prefer the web UI, create a new repo on github.com and then run:
 
 ```powershell
-git remote add origin https://github.com/<your-username>/urbancart-ecommerce.git
+git remote add origin https://github.com/utsavexe/urbancart-ecommerce.git
 git branch -M main
 git push -u origin main
 ```
@@ -93,3 +93,4 @@ jobs:
 ---
 
 Created for the `urbancart ecommerce` project.
+
