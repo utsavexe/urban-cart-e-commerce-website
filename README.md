@@ -1,96 +1,115 @@
-# Urbancart Ecommerce
+# Urban Cart — E-commerce Website
 
-Lightweight Next.js e-commerce starter built with the app directory.
+A modern, responsive e-commerce web application built with TypeScript and CSS. Urban Cart is designed to be a starting point for building an online storefront with a focus on type safety, maintainability, and a clean UI.
 
-## Features
-- Next.js (app router)
+Repository language composition:
+- TypeScript: 79.3%
+- CSS: 20%
+- JavaScript: 0.7%
+
+Status
+
+- Work in progress — actively developed.
+
+Key features
+
+- Product listing and search
+- Shopping cart
+- Checkout flow (placeholder — integrate payment provider)
+- Responsive UI for desktop and mobile
+- TypeScript-first codebase for stronger tooling and fewer runtime errors
+
+Tech stack
+
 - TypeScript
-- Components and UI primitives in `components/` and `components/ui/`
+- CSS (BEM/utility classes or preferred convention)
+- Build tooling: npm / yarn (project may use a bundler or framework — adjust as needed)
 
-## Prerequisites
-- Node.js 18+ or compatible
-- pnpm (recommended) or npm
+Getting started
 
-## Install
+Prerequisites
 
-```powershell
-pnpm install
+- Node.js (>= 16) and npm or Yarn installed
+
+Install dependencies
+
+```bash
+# npm
+npm install
+# or yarn
+yarn install
 ```
 
-## Run (development)
+Run in development
 
-```powershell
-pnpm dev
+```bash
+# npm
+npm run dev
+# or yarn
+yarn dev
 ```
 
-## Build
+Build for production
 
-```powershell
-pnpm build
-pnpm start
+```bash
+# npm
+npm run build
+# or yarn
+yarn build
 ```
 
-## Deploy to GitHub (quick steps)
+Start production preview
 
-1. Initialize git (if not already):
-
-```powershell
-git init
-git add .
-git commit -m "chore: initial commit"
+```bash
+# npm
+npm start
+# or yarn
+yarn start
 ```
 
-2. Create a remote repo and push (using GitHub CLI):
+Environment variables
 
-```powershell
-# replace <owner/repo> or omit to create under your account
-gh repo create urbancart-ecommerce --public --source=. --remote=origin --push
+Create a .env file in the project root for any configuration needed (API keys, backend URL, payment provider keys, etc.). Example:
+
+```
+# .env.example
+API_URL=https://api.example.com
+NEXT_PUBLIC_STRIPE_KEY=pk_live_xxx
 ```
 
-If you prefer the web UI, create a new repo on github.com and then run:
+Project structure (example)
 
-```powershell
-git remote add origin https://github.com/utsavexe/urbancart-ecommerce.git
-git branch -M main
-git push -u origin main
+- src/ — application source code (TypeScript)
+  - components/ — reusable UI components
+  - pages/ or routes/ — views / pages
+  - styles/ — global and component styles (CSS)
+  - utils/ — helper functions
+  - services/ — API clients, payment integrations
+- public/ — static assets
+- package.json
+
+Tests
+
+Add tests as needed. Example commands:
+
+```bash
+npm test
+# or
+yarn test
 ```
 
-## Deploying to Vercel
+Contributing
 
-1. Install the Vercel CLI (optional) or connect the repo on vercel.com.
+Contributions are welcome. Please open an issue first to discuss major changes. When ready, submit a pull request describing the change and why it helps the project.
 
-```powershell
-pnpm i -g vercel
-vercel login
-vercel --prod
-```
+License
 
-Or simply connect the GitHub repo from Vercel dashboard — Vercel will handle builds automatically.
+This repository does not include a license file by default. Add a LICENSE file (for example MIT) if you want to make the project open source.
 
-## CI / GitHub Actions
+Contact
 
-You can add a workflow to `.github/workflows/` to build and test on push. Example minimal job:
+Created by utsavexe — feel free to open issues or pull requests.
 
-```yaml
-name: CI
-on: [push, pull_request]
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v2
-        with:
-          version: 8
-      - run: pnpm install
-      - run: pnpm build
-```
+Notes
 
-## Notes
-- Adjust commands if you use `npm` or `yarn` instead of `pnpm`.
-- If you want, I can: set up a GitHub Actions workflow, create the repo using the GitHub API (you'll need to provide a token), or configure automatic Vercel deployment.
-
----
-
-Created for the `urbancart ecommerce` project.
-
+- This README is a sensible default scaffolding. Update command names, scripts, and framework-specific instructions to match the actual project setup (for example Next.js, Vite, or Create React App) if present.
