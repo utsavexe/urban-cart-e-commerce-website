@@ -14,5 +14,5 @@ Any changes you make to your deployed app will be automatically pushed to this r
 
 Your project is live at:
 
-**[https://vercel.com/utsavs-projects-c697ccd1/v0-urban-cart-e-commerce-website](https://vercel.com/utsavs-projects-c697ccd1/v0-urban-cart-e-commerce-website)**
+**[https://vercel.com/utsavs-projects-c697ccd1/v0-urban-cart-e-commerce-website]([https://vercel.com/utsavs-projects-c697ccd1/v0-urban-cart-e-commerce-website](https://v0-urban-cart-e-commerce-website-murex.vercel.app/))**
 
