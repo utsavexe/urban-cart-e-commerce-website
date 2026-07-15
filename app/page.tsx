@@ -1,4 +1,4 @@
-import { Header } from "@/components/header"
+import { HeaderClient } from "@/components/header-client"
 import { HeroSection } from "@/components/hero-section"
 import { CategoryGrid } from "@/components/category-grid"
 import { CategoryShowcase } from "@/components/category-showcase"
@@ -10,7 +10,7 @@ import { Newsletter } from "@/components/newsletter"
 export default function Home() {
   return (
     <div className="min-h-screen">
-      <Header />
+      <HeaderClient />
       <main>
         <HeroSection />
         <CategoryGrid />
