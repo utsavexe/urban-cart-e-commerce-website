@@ -8,7 +8,7 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       {/* Top banner */}
       <div className="bg-primary py-2 text-center text-sm text-primary-foreground">
-        Free shipping on orders over $50 • New arrivals daily
+        Free shipping on orders over ₹500 • New arrivals daily
       </div>
 
       {/* Main header */}

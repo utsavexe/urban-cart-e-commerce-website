@@ -14,7 +14,7 @@ export function HeroSection() {
                 Urban Style Collection
               </h1>
               <p className="mt-4 text-lg text-muted-foreground text-pretty">
-                Starting at <span className="text-2xl font-bold text-accent">$20</span>.00
+                Starting at <span className="text-2xl font-bold text-accent">₹1,299</span>
               </p>
               <Button size="lg" className="mt-6 gap-2">
                 Shop Now <ArrowRight className="h-4 w-4" />
@@ -34,7 +34,7 @@ export function HeroSection() {
             <p className="text-sm font-medium uppercase tracking-wider text-muted-foreground">Accessories</p>
             <h3 className="mt-2 text-2xl font-bold text-balance">Modern Sunglasses</h3>
             <p className="mt-2 text-muted-foreground">
-              Starting at <span className="font-bold text-foreground">$15</span>.00
+              Starting at <span className="font-bold text-foreground">₹999</span>
             </p>
             <Button variant="link" className="mt-3 gap-1 p-0">
               Shop now <ArrowRight className="h-4 w-4" />
@@ -45,7 +45,7 @@ export function HeroSection() {
             <p className="text-sm font-medium uppercase tracking-wider opacity-90">Sale Offer</p>
             <h3 className="mt-2 text-2xl font-bold text-balance">Summer Sale</h3>
             <p className="mt-2 opacity-90">
-              Starting at <span className="font-bold">$29</span>.99
+              Starting at <span className="font-bold">₹1,999</span>
             </p>
             <Button variant="secondary" className="mt-3 gap-1">
               Shop now <ArrowRight className="h-4 w-4" />

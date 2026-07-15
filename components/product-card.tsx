@@ -1,14 +1,15 @@
 import Link from "next/link"
 import { Heart, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { formatPrice } from "@/lib/utils"
 
 interface Product {
-  id: number
+  id: string | number
   name: string
   category: string
   price: number
   originalPrice: number
-  image: string
+  image: string;
 }
 
 export function ProductCard({ product }: { product: Product }) {
@@ -41,9 +42,9 @@ export function ProductCard({ product }: { product: Product }) {
           <p className="text-xs text-muted-foreground">{product.category}</p>
           <h3 className="mt-1 font-semibold text-sm line-clamp-2 text-balance">{product.name}</h3>
           <div className="mt-2 flex items-center gap-2">
-            <span className="text-lg font-bold">${product.price}</span>
+            <span className="text-lg font-bold">{formatPrice(product.price)}</span>
             {product.originalPrice > product.price && (
-              <span className="text-sm text-muted-foreground line-through">${product.originalPrice}</span>
+              <span className="text-sm text-muted-foreground line-through">{formatPrice(product.originalPrice)}</span>
             )}
           </div>
         </div>
