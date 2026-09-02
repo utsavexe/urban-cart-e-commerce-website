@@ -50,6 +50,47 @@ export function validateUrl(url: string): boolean {
   }
 }
 
+// Amazon shortened URL domains that need resolving
+const SHORT_URL_DOMAINS = ["amzn.in", "amzn.to", "a.co", "fktr.in"];
+
+export function isShortUrl(url: string): boolean {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    return SHORT_URL_DOMAINS.some((d) => hostname === d || hostname.endsWith("." + d));
+  } catch {
+    return false;
+  }
+}
+
+export async function resolveUrl(url: string): Promise<string> {
+  try {
+    const res = await fetch(url, {
+      redirect: "follow",
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },
+    });
+    // response.url contains the final URL after all redirects
+    if (res.url && res.url !== url) {
+      return res.url;
+    }
+    return url;
+  } catch {
+    return url;
+  }
+}
+
+export async function resolveUrls(urls: string[]): Promise<string[]> {
+  const resolved = await Promise.all(
+    urls.map(async (url) => {
+      if (isShortUrl(url)) {
+        const fullUrl = await resolveUrl(url);
+        return normalizeUrl(fullUrl);
+      }
+      return url;
+    })
+  );
+  return resolved;
+}
+
 export interface ScrapeUrlsInput {
   urls: string[];
   maxProducts?: number;
