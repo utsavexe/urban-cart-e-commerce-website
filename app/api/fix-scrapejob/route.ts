@@ -10,33 +10,52 @@ export async function POST(req: Request) {
   }
 
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const results: string[] = [];
+
   try {
-    const results: string[] = [];
+    // Create ScrapedProduct table if missing
+    const spExists = await pool.query(
+      `SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'ScrapedProduct') as exists`
+    );
+    if (!spExists.rows[0].exists) {
+      await pool.query(`
+        CREATE TABLE "ScrapedProduct" (
+          "id" TEXT NOT NULL DEFAULT gen_random_uuid(),
+          "sourceSite" TEXT NOT NULL,
+          "sourceUrl" TEXT NOT NULL,
+          "name" TEXT NOT NULL,
+          "description" TEXT,
+          "price" DOUBLE PRECISION NOT NULL DEFAULT 0,
+          "currency" TEXT NOT NULL DEFAULT 'INR',
+          "originalPrice" DOUBLE PRECISION,
+          "image" TEXT,
+          "images" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+          "brand" TEXT,
+          "rating" DOUBLE PRECISION,
+          "reviewCount" INTEGER,
+          "category" TEXT,
+          "tags" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+          "rawJson" JSONB,
+          "status" TEXT NOT NULL DEFAULT 'PENDING',
+          "reviewedCategoryId" TEXT,
+          "reviewedPrice" INTEGER,
+          "importedProductId" TEXT,
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "updatedAt" TIMESTAMP(3) NOT NULL,
+          CONSTRAINT "ScrapedProduct_pkey" PRIMARY KEY ("id")
+        )
+      `);
+      results.push("Created ScrapedProduct table");
+    } else {
+      results.push("ScrapedProduct already exists");
+    }
 
-    // Drop old ScrapeJob table with wrong columns
-    await pool.query(`DROP TABLE IF EXISTS "ScrapeJob" CASCADE`);
-    results.push("Dropped old ScrapeJob table");
-
-    // Recreate with correct schema from Prisma
-    await pool.query(`
-      CREATE TABLE "ScrapeJob" (
-        "id" TEXT NOT NULL DEFAULT gen_random_uuid(),
-        "site" TEXT NOT NULL,
-        "keyword" TEXT,
-        "urls" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
-        "status" TEXT NOT NULL DEFAULT 'PENDING',
-        "totalScraped" INTEGER NOT NULL DEFAULT 0,
-        "totalImported" INTEGER NOT NULL DEFAULT 0,
-        "totalSkipped" INTEGER NOT NULL DEFAULT 0,
-        "errorMessage" TEXT,
-        "apifyRunId" TEXT,
-        "datasetId" TEXT,
-        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        "completedAt" TIMESTAMP(3),
-        CONSTRAINT "ScrapeJob_pkey" PRIMARY KEY ("id")
-      )
-    `);
-    results.push("Created ScrapeJob with correct columns");
+    // Verify ScrapeJob columns
+    const sjColumns = await pool.query(
+      `SELECT column_name FROM information_schema.columns WHERE table_name = 'ScrapeJob' ORDER BY ordinal_position`
+    );
+    const sjCols = sjColumns.rows.map((r: { column_name: string }) => r.column_name);
+    results.push(`ScrapeJob columns: ${sjCols.join(", ")}`);
 
     return NextResponse.json({ success: true, results });
   } catch (error) {
