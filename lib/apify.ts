@@ -139,7 +139,7 @@ export async function scrapeByUrls(input: ScrapeUrlsInput) {
   const { urls, maxProducts = 50 } = input;
 
   const apifyInput = {
-    detailsUrls: urls,
+    detailsUrls: urls.map((u) => ({ url: u })),
     additionalProperties: true,
     scrapeMode: "AUTO",
     maxProductResults: maxProducts,
@@ -220,7 +220,7 @@ export async function startScrapeByUrlsAsync(input: ScrapeUrlsInput) {
   const { urls, maxProducts = 50 } = input;
 
   const run = await client.actor(ACTOR_ID).start({
-    detailsUrls: urls,
+    detailsUrls: urls.map((u) => ({ url: u })),
     additionalProperties: true,
     scrapeMode: "AUTO",
     maxProductResults: maxProducts,
