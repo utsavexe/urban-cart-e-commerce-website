@@ -53,6 +53,8 @@ export default function AdminScraperPage() {
   const [keyword, setKeyword] = useState("");
   const [site, setSite] = useState("amazon");
   const [scraping, setScraping] = useState(false);
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
+  const [jobStatus, setJobStatus] = useState<string>("");
 
   // Queue state
   const [items, setItems] = useState<ScrapedProduct[]>([]);
@@ -191,11 +193,12 @@ export default function AdminScraperPage() {
 
       const data = await res.json();
       if (res.ok) {
-        toast.success(data.message || "Scraping completed");
+        toast.success(data.message || "Scrape job started");
         setUrls("");
         setKeyword("");
-        fetchItems();
-        fetchStats();
+        setActiveJobId(data.jobId);
+        setJobStatus("RUNNING");
+        pollJobStatus(data.jobId);
       } else {
         toast.error(data.error || "Scraping failed");
       }
@@ -204,6 +207,38 @@ export default function AdminScraperPage() {
     } finally {
       setScraping(false);
     }
+  };
+
+  const pollJobStatus = async (jobId: string) => {
+    const maxAttempts = 120;
+    for (let i = 0; i < maxAttempts; i++) {
+      await new Promise((r) => setTimeout(r, 3000));
+      try {
+        const res = await fetch(`/api/admin/scraper/status?jobId=${jobId}`);
+        const data = await res.json();
+        if (data.status === "COMPLETED") {
+          setJobStatus("COMPLETED");
+          setActiveJobId(null);
+          toast.success(`Scraping complete: ${data.totalImported} products found`);
+          fetchItems();
+          fetchStats();
+          fetchRecentJobs();
+          return;
+        } else if (data.status === "FAILED") {
+          setJobStatus("FAILED");
+          setActiveJobId(null);
+          toast.error(data.errorMessage || "Scrape job failed");
+          fetchRecentJobs();
+          return;
+        }
+        setJobStatus(data.status || "RUNNING");
+      } catch {
+        // continue polling
+      }
+    }
+    setActiveJobId(null);
+    setJobStatus("");
+    toast.error("Scrape job timed out — check the jobs list");
   };
 
   const handleApprove = async () => {
@@ -477,14 +512,20 @@ export default function AdminScraperPage() {
           </div>
         )}
 
-        <div className="flex justify-end">
-          <Button onClick={handleScrape} disabled={scraping}>
+        <div className="flex justify-end items-center gap-3">
+          {activeJobId && (
+            <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              {jobStatus === "RUNNING" ? "Apify is scraping..." : `${jobStatus}...`}
+            </span>
+          )}
+          <Button onClick={handleScrape} disabled={scraping || !!activeJobId}>
             {scraping ? (
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
             ) : (
               <Search className="h-4 w-4 mr-2" />
             )}
-            {scraping ? "Scraping..." : "Start Scraping"}
+            {scraping ? "Starting..." : "Start Scraping"}
           </Button>
         </div>
       </div>

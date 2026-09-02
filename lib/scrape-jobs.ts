@@ -1,5 +1,8 @@
 import { db } from "./db";
-import { scrapeByUrls, scrapeByKeywords, fetchDatasetResults } from "./apify";
+import {
+  scrapeByUrls, scrapeByKeywords, fetchDatasetResults,
+  startScrapeByUrlsAsync, startScrapeByKeywordsAsync, getRunStatus,
+} from "./apify";
 import type { ApifyProduct } from "./apify";
 import type { Prisma } from "@prisma/client";
 
@@ -262,29 +265,28 @@ export async function processScrapeResults(
   }
 }
 
-// ─── Start Scheduled Scrape ─────────────────────────────────────
+// ─── Start Scheduled Scrape (async, non-blocking) ─────────────
 
 export async function startScheduledScrape(
   site: string,
   keyword?: string,
   urls?: string[]
 ): Promise<string> {
-  // Create job record
   const job = await db.scrapeJob.create({
     data: {
       site,
       keyword: keyword || null,
       urls: urls || [],
-      status: "PENDING",
+      status: "RUNNING",
     },
   });
 
   try {
     let result;
     if (urls && urls.length > 0) {
-      result = await scrapeByUrls({ urls, maxProducts: 50 });
+      result = await startScrapeByUrlsAsync({ urls, maxProducts: 50 });
     } else if (keyword) {
-      result = await scrapeByKeywords({
+      result = await startScrapeByKeywordsAsync({
         keyword,
         site,
         maxProducts: 50,
@@ -294,25 +296,14 @@ export async function startScheduledScrape(
       throw new Error("Either keyword or urls must be provided");
     }
 
-    // Update job with Apify run info
     await db.scrapeJob.update({
       where: { id: job.id },
       data: {
         apifyRunId: result.runId,
         datasetId: result.datasetId,
-        totalScraped: result.total,
+        totalScraped: 0,
       },
     });
-
-    // Auto-process if dataset has results
-    if (result.total > 0) {
-      await processScrapeResults(job.id, result.datasetId);
-    } else {
-      await db.scrapeJob.update({
-        where: { id: job.id },
-        data: { status: "COMPLETED", completedAt: new Date() },
-      });
-    }
 
     return job.id;
   } catch (err) {
@@ -397,4 +388,75 @@ export async function getRecentJobs(limit = 20) {
     orderBy: { createdAt: "desc" },
     take: limit,
   });
+}
+
+// ─── Process Results into ScrapedProduct Queue ──────────────────
+
+function mapApifyToScraped(product: ApifyProduct, sourceSite: string) {
+  return {
+    sourceSite,
+    sourceUrl: product.url || "",
+    name: product.name || "Untitled Product",
+    description: product.description || null,
+    price: product.offers?.price || 0,
+    currency: product.offers?.priceCurrency || "INR",
+    originalPrice: product.offers?.price || null,
+    image: product.image || null,
+    images: product.images || [],
+    brand: product.brand?.name || null,
+    rating: product.rating?.ratingValue || null,
+    reviewCount: product.rating?.reviewCount || null,
+    category: product.category || null,
+    tags: product.brand?.name ? [product.brand.name] : [],
+    rawJson: product as unknown as Prisma.InputJsonValue,
+  };
+}
+
+export async function processResultsToQueue(
+  jobId: string,
+  datasetId: string
+): Promise<{ saved: number; error?: string }> {
+  await db.scrapeJob.update({
+    where: { id: jobId },
+    data: { status: "PROCESSING" },
+  });
+
+  try {
+    const products = await fetchDatasetResults(datasetId, 200);
+
+    const data = products.map((p) => {
+      const sourceSite = p.url
+        ? p.url.includes("amazon") ? "amazon"
+          : p.url.includes("flipkart") ? "flipkart"
+          : p.url.includes("myntra") ? "myntra"
+          : "other"
+        : "other";
+      return mapApifyToScraped(p, sourceSite);
+    });
+
+    const saved = await db.scrapedProduct.createMany({ data });
+
+    await db.scrapeJob.update({
+      where: { id: jobId },
+      data: {
+        status: "COMPLETED",
+        totalScraped: products.length,
+        totalImported: saved.count,
+        completedAt: new Date(),
+      },
+    });
+
+    return { saved: saved.count };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    await db.scrapeJob.update({
+      where: { id: jobId },
+      data: {
+        status: "FAILED",
+        errorMessage: message,
+        completedAt: new Date(),
+      },
+    });
+    return { saved: 0, error: message };
+  }
 }

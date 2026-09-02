@@ -2,66 +2,39 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth-utils";
 import { scrapeUrlsSchema, scrapeKeywordSchema, scrapedProductQuerySchema } from "@/lib/validations/scraper";
-import { scrapeByUrls, scrapeByKeywords } from "@/lib/apify";
-import type { ApifyProduct } from "@/lib/apify";
-import type { Prisma } from "@prisma/client";
+import { startScrapeByUrlsAsync, startScrapeByKeywordsAsync } from "@/lib/apify";
 
-function extractSiteFromUrl(url: string): string {
-  try {
-    const hostname = new URL(url).hostname.toLowerCase();
-    if (hostname.includes("amazon")) return "amazon";
-    if (hostname.includes("flipkart")) return "flipkart";
-    if (hostname.includes("myntra")) return "myntra";
-    return "other";
-  } catch {
-    return "other";
-  }
-}
-
-function mapApifyToScraped(product: ApifyProduct, sourceSite: string) {
-  return {
-    sourceSite,
-    sourceUrl: product.url || "",
-    name: product.name || "Untitled Product",
-    description: product.description || null,
-    price: product.offers?.price || 0,
-    currency: product.offers?.priceCurrency || "INR",
-    originalPrice: product.offers?.price || null,
-    image: product.image || null,
-    images: product.images || [],
-    brand: product.brand?.name || null,
-    rating: product.rating?.ratingValue || null,
-    reviewCount: product.rating?.reviewCount || null,
-    category: product.category || null,
-    tags: product.brand?.name ? [product.brand.name] : [],
-    rawJson: product as unknown as Prisma.InputJsonValue,
-  };
-}
-
-// POST /api/admin/scraper — Start a new scrape job
+// POST /api/admin/scraper — Start a new scrape job (async, non-blocking)
 export async function POST(request: NextRequest) {
   try {
     await requireAdmin();
 
     const body = await request.json();
 
-    // Try URL mode first, then keyword mode
     const urlParsed = scrapeUrlsSchema.safeParse(body);
     const keywordParsed = scrapeKeywordSchema.safeParse(body);
 
-    let results: ApifyProduct[] = [];
-    let sourceSite = "other";
+    let site = "other";
+    let keyword: string | undefined;
+    let urls: string[] | undefined;
+    let runResult: { runId: string; datasetId: string; status: string };
 
     if (urlParsed.success) {
-      const { urls, maxProducts } = urlParsed.data;
-      sourceSite = extractSiteFromUrl(urls[0]);
-      const result = await scrapeByUrls({ urls, maxProducts });
-      results = result.products;
+      urls = urlParsed.data.urls;
+      site = urls[0].includes("amazon") ? "amazon"
+        : urls[0].includes("flipkart") ? "flipkart"
+        : urls[0].includes("myntra") ? "myntra"
+        : "other";
+      runResult = await startScrapeByUrlsAsync({ urls, maxProducts: urlParsed.data.maxProducts });
     } else if (keywordParsed.success) {
-      const { keyword, site, maxProducts, countryCode } = keywordParsed.data;
-      sourceSite = site;
-      const result = await scrapeByKeywords({ keyword, site, maxProducts, countryCode });
-      results = result.products;
+      keyword = keywordParsed.data.keyword;
+      site = keywordParsed.data.site;
+      runResult = await startScrapeByKeywordsAsync({
+        keyword,
+        site,
+        maxProducts: keywordParsed.data.maxProducts,
+        countryCode: keywordParsed.data.countryCode,
+      });
     } else {
       return NextResponse.json(
         { error: "Invalid input. Provide either urls or keyword+site." },
@@ -69,23 +42,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Save scraped products to database
-    const saved = await db.scrapedProduct.createMany({
-      data: results.map((p) => mapApifyToScraped(p, sourceSite)),
+    const job = await db.scrapeJob.create({
+      data: {
+        site,
+        keyword: keyword || null,
+        urls: urls || [],
+        status: "RUNNING",
+        apifyRunId: runResult.runId,
+        datasetId: runResult.datasetId,
+      },
     });
 
     return NextResponse.json({
-      message: `Scraped ${saved.count} products successfully`,
-      count: saved.count,
+      message: "Scrape job started",
+      jobId: job.id,
+      runId: runResult.runId,
+      datasetId: runResult.datasetId,
     });
   } catch (response) {
     if (response instanceof NextResponse) return response;
     console.error("[SCRAPER_POST_ERROR]", response);
-    const message = response instanceof Error ? response.message : "Failed to scrape products";
-    return NextResponse.json(
-      { error: message },
-      { status: 500 }
-    );
+    const message = response instanceof Error ? response.message : "Failed to start scrape";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
