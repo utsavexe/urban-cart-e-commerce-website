@@ -13,6 +13,17 @@ export async function POST(req: Request) {
   const results: string[] = [];
 
   try {
+    // Create ScrapedStatus enum if missing
+    const enumExists = await pool.query(
+      `SELECT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ScrapedStatus') as exists`
+    );
+    if (!enumExists.rows[0].exists) {
+      await pool.query(`CREATE TYPE "ScrapedStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED', 'IMPORTED')`);
+      results.push("Created ScrapedStatus enum");
+    } else {
+      results.push("ScrapedStatus enum already exists");
+    }
+
     // Create ScrapedProduct table if missing
     const spExists = await pool.query(
       `SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'ScrapedProduct') as exists`
@@ -36,7 +47,7 @@ export async function POST(req: Request) {
           "category" TEXT,
           "tags" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
           "rawJson" JSONB,
-          "status" TEXT NOT NULL DEFAULT 'PENDING',
+          "status" "ScrapedStatus" NOT NULL DEFAULT 'PENDING',
           "reviewedCategoryId" TEXT,
           "reviewedPrice" INTEGER,
           "importedProductId" TEXT,
@@ -47,7 +58,16 @@ export async function POST(req: Request) {
       `);
       results.push("Created ScrapedProduct table");
     } else {
-      results.push("ScrapedProduct already exists");
+      // Fix status column type if it's TEXT instead of enum
+      const colCheck = await pool.query(
+        `SELECT data_type FROM information_schema.columns WHERE table_name = 'ScrapedProduct' AND column_name = 'status'`
+      );
+      if (colCheck.rows[0]?.data_type === "text") {
+        await pool.query(`ALTER TABLE "ScrapedProduct" ALTER COLUMN "status" TYPE "ScrapedStatus" USING "status"::"ScrapedStatus"`);
+        results.push("Fixed ScrapedProduct.status column type");
+      } else {
+        results.push("ScrapedProduct already exists with correct schema");
+      }
     }
 
     // Verify ScrapeJob columns
