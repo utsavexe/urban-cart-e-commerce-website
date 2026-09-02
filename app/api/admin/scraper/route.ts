@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth-utils";
 import { scrapeUrlsSchema, scrapeKeywordSchema, scrapedProductQuerySchema } from "@/lib/validations/scraper";
-import { startScrapeByUrlsAsync, startScrapeByKeywordsAsync } from "@/lib/apify";
+import { startScrapeByUrlsAsync, startScrapeByKeywordsAsync, normalizeUrl, validateUrl } from "@/lib/apify";
 
 // POST /api/admin/scraper — Start a new scrape job (async, non-blocking)
 export async function POST(request: NextRequest) {
@@ -11,8 +11,29 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
+    // Normalize URLs if provided in body
+    if (body.urls && Array.isArray(body.urls)) {
+      body.urls = body.urls
+        .map((u: string) => normalizeUrl(u))
+        .filter((u: string) => validateUrl(u));
+    }
+
     const urlParsed = scrapeUrlsSchema.safeParse(body);
     const keywordParsed = scrapeKeywordSchema.safeParse(body);
+
+    if (!urlParsed.success && !keywordParsed.success) {
+      // Provide specific error messages
+      if (body.urls) {
+        return NextResponse.json(
+          { error: "Invalid URLs. Please paste full Amazon/Flipkart product URLs (e.g. https://www.amazon.in/dp/B09WNK39JN)" },
+          { status: 400 }
+        );
+      }
+      return NextResponse.json(
+        { error: "Invalid input. Provide either valid product URLs or a keyword with site." },
+        { status: 400 }
+      );
+    }
 
     let site = "other";
     let keyword: string | undefined;

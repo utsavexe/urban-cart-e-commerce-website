@@ -175,6 +175,23 @@ export default function AdminScraperPage() {
           setScraping(false);
           return;
         }
+
+        // Client-side URL validation
+        const invalidUrls = urlList.filter((u) => {
+          try {
+            const parsed = new URL(u);
+            return !(parsed.protocol === "https:" || parsed.protocol === "http:");
+          } catch {
+            return true;
+          }
+        });
+
+        if (invalidUrls.length > 0) {
+          toast.error(`Invalid URL format: ${invalidUrls[0].substring(0, 50)}... — Use full URLs with https://`);
+          setScraping(false);
+          return;
+        }
+
         body = { urls: urlList };
       } else {
         if (!keyword.trim()) {
@@ -478,12 +495,15 @@ export default function AdminScraperPage() {
               Product URLs (one per line, max 20)
             </label>
             <textarea
-              placeholder={`https://www.amazon.in/dp/B09WNK39JN\nhttps://www.flipkart.com/product/...`}
+              placeholder={`Paste full product URLs with https://\n\nAmazon:\nhttps://www.amazon.in/dp/B09WNK39JN\nhttps://www.amazon.in/product/dp/B08N5WRWNW\n\nFlipkart:\nhttps://www.flipkart.com/product/p/itm...`}
               value={urls}
               onChange={(e) => setUrls(e.target.value)}
               className="w-full mt-1 rounded-md border border-input bg-background p-3 text-sm font-mono"
-              rows={4}
+              rows={5}
             />
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Must be full URLs starting with https:// — Use the product page link from your browser address bar
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

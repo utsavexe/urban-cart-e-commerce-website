@@ -8,6 +8,48 @@ const ACTOR_ID = "apify/e-commerce-scraping-tool";
 const POLL_INTERVAL_MS = 3000;
 const MAX_POLL_ATTEMPTS = 100;
 
+// ─── URL Normalization ──────────────────────────────────────────
+
+export function normalizeUrl(raw: string): string {
+  let url = raw.trim().replace(/[\r\n\t]+/g, "").replace(/\s+/g, "");
+
+  // Remove tracking params that Apify might reject
+  try {
+    const parsed = new URL(url);
+    // Remove common Amazon tracking params
+    const trackingParams = ["tag", "linkCode", "ref", "camp", "creative", "creativeASIN", "ascsubtag", "pd_rd_r", "pd_rd_w", "pd_rd_wg", "th", "psc", "spLa"];
+    trackingParams.forEach((p) => parsed.searchParams.delete(p));
+    url = parsed.toString();
+  } catch {
+    // URL might be missing protocol
+  }
+
+  // Add https:// if missing
+  if (!url.startsWith("http://") && !url.startsWith("https://")) {
+    if (url.startsWith("www.")) {
+      url = "https://" + url;
+    } else if (url.includes("amazon.") || url.includes("flipkart.") || url.includes("myntra.") || url.includes("amzn.")) {
+      url = "https://www." + url;
+    } else {
+      url = "https://" + url;
+    }
+  }
+
+  // Remove trailing slashes
+  url = url.replace(/\/+$/, "");
+
+  return url;
+}
+
+export function validateUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" || parsed.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
 export interface ScrapeUrlsInput {
   urls: string[];
   maxProducts?: number;
