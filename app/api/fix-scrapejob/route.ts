@@ -24,51 +24,42 @@ export async function POST(req: Request) {
       results.push("ScrapedStatus enum already exists");
     }
 
-    // Create ScrapedProduct table if missing
+    // Drop and recreate ScrapedProduct with correct types
     const spExists = await pool.query(
       `SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'ScrapedProduct') as exists`
     );
-    if (!spExists.rows[0].exists) {
-      await pool.query(`
-        CREATE TABLE "ScrapedProduct" (
-          "id" TEXT NOT NULL DEFAULT gen_random_uuid(),
-          "sourceSite" TEXT NOT NULL,
-          "sourceUrl" TEXT NOT NULL,
-          "name" TEXT NOT NULL,
-          "description" TEXT,
-          "price" DOUBLE PRECISION NOT NULL DEFAULT 0,
-          "currency" TEXT NOT NULL DEFAULT 'INR',
-          "originalPrice" DOUBLE PRECISION,
-          "image" TEXT,
-          "images" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
-          "brand" TEXT,
-          "rating" DOUBLE PRECISION,
-          "reviewCount" INTEGER,
-          "category" TEXT,
-          "tags" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
-          "rawJson" JSONB,
-          "status" "ScrapedStatus" NOT NULL DEFAULT 'PENDING',
-          "reviewedCategoryId" TEXT,
-          "reviewedPrice" INTEGER,
-          "importedProductId" TEXT,
-          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          "updatedAt" TIMESTAMP(3) NOT NULL,
-          CONSTRAINT "ScrapedProduct_pkey" PRIMARY KEY ("id")
-        )
-      `);
-      results.push("Created ScrapedProduct table");
-    } else {
-      // Fix status column type if it's TEXT instead of enum
-      const colCheck = await pool.query(
-        `SELECT data_type FROM information_schema.columns WHERE table_name = 'ScrapedProduct' AND column_name = 'status'`
-      );
-      if (colCheck.rows[0]?.data_type === "text") {
-        await pool.query(`ALTER TABLE "ScrapedProduct" ALTER COLUMN "status" TYPE "ScrapedStatus" USING "status"::"ScrapedStatus"`);
-        results.push("Fixed ScrapedProduct.status column type");
-      } else {
-        results.push("ScrapedProduct already exists with correct schema");
-      }
+    if (spExists.rows[0].exists) {
+      await pool.query(`DROP TABLE "ScrapedProduct" CASCADE`);
+      results.push("Dropped old ScrapedProduct table");
     }
+    await pool.query(`
+      CREATE TABLE "ScrapedProduct" (
+        "id" TEXT NOT NULL DEFAULT gen_random_uuid(),
+        "sourceSite" TEXT NOT NULL,
+        "sourceUrl" TEXT NOT NULL,
+        "name" TEXT NOT NULL,
+        "description" TEXT,
+        "price" DOUBLE PRECISION NOT NULL DEFAULT 0,
+        "currency" TEXT NOT NULL DEFAULT 'INR',
+        "originalPrice" DOUBLE PRECISION,
+        "image" TEXT,
+        "images" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+        "brand" TEXT,
+        "rating" DOUBLE PRECISION,
+        "reviewCount" INTEGER,
+        "category" TEXT,
+        "tags" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+        "rawJson" JSONB,
+        "status" "ScrapedStatus" NOT NULL DEFAULT 'PENDING',
+        "reviewedCategoryId" TEXT,
+        "reviewedPrice" INTEGER,
+        "importedProductId" TEXT,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL,
+        CONSTRAINT "ScrapedProduct_pkey" PRIMARY KEY ("id")
+      )
+    `);
+    results.push("Created ScrapedProduct table");
 
     // Verify ScrapeJob columns
     const sjColumns = await pool.query(
