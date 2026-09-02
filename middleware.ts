@@ -12,6 +12,7 @@ const protectedRoutes = [
 
 // Routes that require admin role
 const adminRoutes = ["/admin"];
+const adminApiRoutes = ["/api/admin"];
 
 // Routes that should redirect authenticated users (e.g. login page)
 const authRoutes = ["/login", "/register", "/forgot-password", "/reset-password"];
@@ -22,7 +23,8 @@ export default auth((req) => {
 
   // Check if the current path matches any admin route
   const isAdminRoute = adminRoutes.some((route) => pathname.startsWith(route));
-  if (isAdminRoute) {
+  const isAdminApiRoute = adminApiRoutes.some((route) => pathname.startsWith(route));
+  if (isAdminRoute || isAdminApiRoute) {
     if (!isLoggedIn) {
       return NextResponse.redirect(new URL("/login", req.url));
     }
@@ -54,7 +56,7 @@ export default auth((req) => {
 
 export const config = {
   matcher: [
-    // Match all routes except static files and API routes
-    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    // Match page routes and admin API routes (excluding static files and other APIs)
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

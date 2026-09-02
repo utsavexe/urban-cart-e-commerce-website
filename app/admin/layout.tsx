@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { HeaderClient } from "@/components/header-client";
 import { Footer } from "@/components/footer";
-import { BarChart3, Package, ShoppingCart, ArrowLeft } from "lucide-react";
+import { BarChart3, Package, ShoppingCart, ArrowLeft, Globe } from "lucide-react";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -13,6 +13,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: "Stats Dashboard", href: "/admin", icon: BarChart3 },
     { name: "Manage Products", href: "/admin/products", icon: Package },
     { name: "Manage Orders", href: "/admin/orders", icon: ShoppingCart },
+    { name: "Product Scraper", href: "/admin/scraper", icon: Globe },
   ];
 
   return (

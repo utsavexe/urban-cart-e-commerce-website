@@ -13,7 +13,6 @@ export async function GET() {
       totalUsers,
       totalProducts,
       recentOrders,
-      ordersByStatus,
       lowStockProducts,
     ] = await Promise.all([
       // Total orders (only paid)
@@ -43,13 +42,6 @@ export async function GET() {
         },
       }),
 
-      // Orders by status
-      db.order.groupBy({
-        by: ["status"],
-        _count: { status: true },
-        where: { paymentStatus: "PAID" },
-      }),
-
       // Low stock products (stock < 10)
       db.product.findMany({
         where: { stock: { lt: 10 } },
@@ -67,10 +59,6 @@ export async function GET() {
         totalProducts,
       },
       recentOrders,
-      ordersByStatus: ordersByStatus.map((s) => ({
-        status: s.status,
-        count: s._count.status,
-      })),
       lowStockProducts,
     });
   } catch (response) {

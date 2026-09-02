@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth-utils";
+import { Prisma } from "@prisma/client";
 
 // GET /api/orders — List user's orders
 export async function GET(request: NextRequest) {
@@ -12,9 +13,9 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") || "10")));
     const status = searchParams.get("status")?.toUpperCase();
 
-    const where: { userId: string; status?: string } = { userId: user.id };
+    const where: Prisma.OrderWhereInput = { userId: user.id };
     if (status) {
-      where.status = status as string;
+      where.status = status as Prisma.EnumOrderStatusFilter["equals"];
     }
 
     const [orders, total] = await Promise.all([

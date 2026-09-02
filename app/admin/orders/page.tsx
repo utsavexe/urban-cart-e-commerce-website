@@ -25,6 +25,7 @@ interface Order {
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
@@ -32,6 +33,7 @@ export default function AdminOrdersPage() {
 
   const fetchOrders = () => {
     setLoading(true);
+    setError(null);
     const params = new URLSearchParams();
     if (search.trim()) params.set("search", search);
     if (status) params.set("status", status);
@@ -44,18 +46,17 @@ export default function AdminOrdersPage() {
         setOrders(data.orders || []);
         setTotalPages(data.pagination?.totalPages || 1);
       })
-      .catch(() => {})
+      .catch(() => setError("Failed to load orders"))
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
     fetchOrders();
-  }, [page, status]);
+  }, [page, status, search]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1);
-    fetchOrders();
   };
 
   const getStatusColor = (status: string) => {
@@ -112,6 +113,8 @@ export default function AdminOrdersPage() {
         <div className="flex justify-center py-20">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
+      ) : error ? (
+        <p className="text-center text-destructive py-16">{error}</p>
       ) : orders.length === 0 ? (
         <p className="text-center text-xs text-muted-foreground py-16">No orders found.</p>
       ) : (

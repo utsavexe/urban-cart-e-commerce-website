@@ -39,6 +39,7 @@ export default function AdminStatsPage() {
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
   const [lowStock, setLowStock] = useState<LowStockProduct[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/admin/stats")
@@ -48,7 +49,7 @@ export default function AdminStatsPage() {
         setRecentOrders(data.recentOrders || []);
         setLowStock(data.lowStockProducts || []);
       })
-      .catch(() => {})
+      .catch(() => setError("Failed to load dashboard stats"))
       .finally(() => setLoading(false));
   }, []);
 
@@ -56,6 +57,17 @@ export default function AdminStatsPage() {
     return (
       <div className="flex justify-center items-center py-32">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-xl font-bold">Business Overview</h2>
+        </div>
+        <p className="text-center text-destructive py-16">{error}</p>
       </div>
     );
   }

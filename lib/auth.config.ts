@@ -15,8 +15,19 @@ export const authConfig = {
   ],
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
-      // Basic authorized callback if needed, but we handle route checks in middleware.ts
       return true;
+    },
+    async jwt({ token, user }) {
+      if (user && (user as any).role) {
+        token.role = (user as any).role;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.role = token.role as string;
+      }
+      return session;
     },
   },
 } satisfies NextAuthConfig;

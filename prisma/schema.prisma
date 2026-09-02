@@ -113,6 +113,10 @@ model Product {
   orderItems    OrderItem[]
   reviews       Review[]
   wishlistItems WishlistItem[]
+  sourceUrl     String?    // Original product URL from source marketplace
+  sourceSite    String?    // "amazon", "flipkart", "myntra"
+  sourcePrice   Int?       // Original price from source (in paise)
+  lastSyncedAt  DateTime?  // When was this product last price/stock synced
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 }
@@ -294,4 +298,56 @@ model Coupon {
   isActive      Boolean      @default(true)
   orders        Order[]
   createdAt     DateTime     @default(now())
+}
+
+// ─── SCRAPER ────────────────────────────────────────────────────
+
+enum ScrapedStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  IMPORTED
+}
+
+model ScrapedProduct {
+  id                String         @id @default(cuid())
+  sourceSite        String         // "amazon", "flipkart", "myntra", "other"
+  sourceUrl         String
+  name              String
+  description       String?        @db.Text
+  price             Float          // scraped price in source currency
+  currency          String         @default("INR")
+  originalPrice     Float?
+  image             String?
+  images            String[]
+  brand             String?
+  rating            Float?
+  reviewCount       Int?
+  category          String?        // suggested category from scraping
+  tags              String[]
+  rawJson           Json?          // full Apify response for reference
+  status            ScrapedStatus  @default(PENDING)
+  reviewedCategoryId String?       // admin's chosen category ID
+  reviewedPrice     Int?           // admin's adjusted price in paise
+  importedProductId String?        // link to Product after import
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+}
+
+// ─── SCRAPE JOBS (Auto-Import) ──────────────────────────────────
+
+model ScrapeJob {
+  id            String    @id @default(cuid())
+  site          String    // "amazon", "flipkart", "myntra"
+  keyword       String?   // search keyword
+  urls          String[]  // or specific URLs
+  status        String    @default("PENDING") // PENDING, RUNNING, COMPLETED, FAILED
+  totalScraped  Int       @default(0)
+  totalImported Int       @default(0)
+  totalSkipped  Int       @default(0) // duplicates skipped
+  errorMessage  String?
+  apifyRunId    String?
+  datasetId     String?
+  createdAt     DateTime  @default(now())
+  completedAt   DateTime?
 }

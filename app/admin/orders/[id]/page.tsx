@@ -55,6 +55,7 @@ export default function AdminOrderDetailPage({ params }: { params: Promise<{ id:
   const router = useRouter();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
   const [status, setStatus] = useState("");
 
@@ -63,19 +64,22 @@ export default function AdminOrderDetailPage({ params }: { params: Promise<{ id:
       .then((res) => res.json())
       .then((data) => {
         if (data.error) {
-          toast.error("Order not found");
-          router.push("/admin/orders");
+          setError(data.error);
           return;
         }
         setOrder(data);
         setStatus(data.status);
       })
-      .catch(() => {})
+      .catch(() => setError("Failed to load order"))
       .finally(() => setLoading(false));
   }, [id, router]);
 
   const handleStatusChange = async (newStatus: string) => {
     if (!order) return;
+    if (!confirm(`Change order status to "${newStatus}"?`)) {
+      setStatus(order.status);
+      return;
+    }
     setUpdating(true);
 
     try {
@@ -117,6 +121,22 @@ export default function AdminOrderDetailPage({ params }: { params: Promise<{ id:
     return (
       <div className="flex justify-center items-center py-32">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <Link href="/admin/orders">
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+          <h2 className="text-xl font-bold">Order Details</h2>
+        </div>
+        <p className="text-center text-destructive py-16">{error}</p>
       </div>
     );
   }
@@ -175,7 +195,7 @@ export default function AdminOrderDetailPage({ params }: { params: Promise<{ id:
               {order.items.map((item) => (
                 <div key={item.id} className="flex justify-between items-center py-3">
                   <div className="flex items-center gap-3">
-                    <img src={item.product.image} className="h-10 w-10 object-cover rounded bg-muted" alt="" />
+                    <img src={item.product.image} className="h-10 w-10 object-cover rounded bg-muted" alt={item.product.name} />
                     <div>
                       <p className="font-medium text-xs line-clamp-1">{item.product.name}</p>
                       <p className="text-[10px] text-muted-foreground">

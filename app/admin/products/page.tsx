@@ -29,6 +29,7 @@ export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -47,6 +48,7 @@ export default function AdminProductsPage() {
 
   const fetchProducts = () => {
     setLoading(true);
+    setError(null);
     const params = new URLSearchParams();
     if (search.trim()) params.set("search", search);
     params.set("page", String(page));
@@ -58,13 +60,13 @@ export default function AdminProductsPage() {
         setProducts(data.products || []);
         setTotalPages(data.pagination?.totalPages || 1);
       })
-      .catch(() => {})
+      .catch(() => setError("Failed to load products"))
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
     fetchProducts();
-  }, [page]);
+  }, [page, search]);
 
   useEffect(() => {
     // Fetch categories for dropdown
@@ -77,7 +79,6 @@ export default function AdminProductsPage() {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1);
-    fetchProducts();
   };
 
   const handleEditClick = (p: Product) => {
@@ -272,6 +273,8 @@ export default function AdminProductsPage() {
             <div className="flex justify-center py-20">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
+          ) : error ? (
+            <p className="text-center text-destructive py-16">{error}</p>
           ) : products.length === 0 ? (
             <p className="text-center text-xs text-muted-foreground py-16">No products found.</p>
           ) : (
@@ -290,7 +293,7 @@ export default function AdminProductsPage() {
                   {products.map((p) => (
                     <tr key={p.id} className="border-b border-border hover:bg-muted/10 last:border-0">
                       <td className="p-3 font-semibold flex items-center gap-2">
-                        <img src={p.image} className="h-8 w-8 object-cover rounded bg-muted" alt="" />
+                        <img src={p.image} className="h-8 w-8 object-cover rounded bg-muted" alt={p.name} />
                         <span>{p.name}</span>
                       </td>
                       <td className="p-3">{p.category.name}</td>
